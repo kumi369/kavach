@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useState } from "react";
 import {
   ALERT_STORAGE_KEY,
   buildTimeline,
@@ -9,24 +9,41 @@ import {
   type AlertRecord,
 } from "@/lib/alert-data";
 
+const ALERT_EVENT = "kavach-alert-feed-change";
+
+function readStoredAlerts() {
+  try {
+    const raw = window.localStorage.getItem(ALERT_STORAGE_KEY);
+    if (!raw) {
+      return sampleAlerts;
+    }
+
+    const parsed = JSON.parse(raw) as AlertRecord[];
+    return parsed.length > 0 ? parsed : sampleAlerts;
+  } catch {
+    return sampleAlerts;
+  }
+}
+
 function useStoredAlerts() {
-  return useMemo(() => {
-    if (typeof window === "undefined") {
-      return sampleAlerts;
-    }
+  const [alerts, setAlerts] = useState<AlertRecord[]>(sampleAlerts);
 
-    try {
-      const raw = window.localStorage.getItem(ALERT_STORAGE_KEY);
-      if (!raw) {
-        return sampleAlerts;
-      }
+  useEffect(() => {
+    const syncAlerts = () => {
+      setAlerts(readStoredAlerts());
+    };
 
-      const parsed = JSON.parse(raw) as AlertRecord[];
-      return parsed.length > 0 ? parsed : sampleAlerts;
-    } catch {
-      return sampleAlerts;
-    }
+    syncAlerts();
+    window.addEventListener(ALERT_EVENT, syncAlerts);
+    window.addEventListener("storage", syncAlerts);
+
+    return () => {
+      window.removeEventListener(ALERT_EVENT, syncAlerts);
+      window.removeEventListener("storage", syncAlerts);
+    };
   }, []);
+
+  return alerts;
 }
 
 export function DashboardClient() {

@@ -65,6 +65,10 @@ export const sampleAlerts: AlertRecord[] = [
   },
 ];
 
+export type UploadFormat = "csv" | "json" | "log" | "excel";
+
+type RawThreatRecord = Record<string, string>;
+
 function formatRelativeTime(index: number, rawTimestamp: string | undefined) {
   const trimmed = (rawTimestamp ?? "").trim();
   if (trimmed) return trimmed;
@@ -97,13 +101,27 @@ export function parseCsvToAlerts(csvText: string): AlertRecord[] {
   if (rows.length < 2) return [];
 
   const headers = rows[0].split(",").map((header) => header.trim().toLowerCase());
-
-  return rows.slice(1).map((row, index) => {
+  const rawRecords = rows.slice(1).map((row) => {
     const values = row.split(",").map((value) => value.trim());
-    const record = Object.fromEntries(
+    return Object.fromEntries(
       headers.map((header, headerIndex) => [header, values[headerIndex] ?? ""])
     );
+  });
 
+  return mapRecordsToAlerts(rawRecords);
+}
+
+function normalizeRecordKeys(record: Record<string, unknown>): RawThreatRecord {
+  return Object.fromEntries(
+    Object.entries(record).map(([key, value]) => [
+      key.trim().toLowerCase(),
+      String(value ?? "").trim(),
+    ])
+  );
+}
+
+function mapRecordsToAlerts(records: RawThreatRecord[]) {
+  return records.map((record, index) => {
     const failedLogins = Number(record.failed_logins ?? 0);
     const lateralAttempts = Number(record.lateral_attempts ?? 0);
     const bytesOut = Number(record.bytes_out ?? 0);
@@ -159,6 +177,55 @@ export function parseCsvToAlerts(csvText: string): AlertRecord[] {
       reasons,
     };
   });
+}
+
+export function parseJsonToAlerts(jsonText: string): AlertRecord[] {
+  const parsed = JSON.parse(jsonText) as Record<string, unknown> | Record<string, unknown>[];
+  const records = Array.isArray(parsed) ? parsed : [parsed];
+  return mapRecordsToAlerts(records.map(normalizeRecordKeys));
+}
+
+export function parseLogTextToAlerts(logText: string): AlertRecord[] {
+  const rows = logText
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  const records = rows.map((line) => {
+    const timestampMatch = line.match(/^\d{2}:\d{2}/);
+    const vectorMatch = line.match(/\b(SSH|Credential abuse|Port sweep|DNS anomaly|RDP)\b/i);
+    const sourceMatch = line.match(/source=([^ ]+)/i);
+    const failedMatch = line.match(/failed(?:_logins| logins)?=(\d+)/i);
+    const bytesMatch = line.match(/bytes(?:_out)?=(\d+)/i);
+    const privilegeMatch = line.match(/privilege(?:_change)?=(yes|no)/i);
+    const lateralMatch = line.match(/lateral(?:_attempts)?=(\d+)/i);
+    const geoMatch = line.match(/geo(?:_velocity)?=(high|medium|low)/i);
+
+    return {
+      timestamp: timestampMatch?.[0] ?? "",
+      source: sourceMatch?.[1]?.replace(/_/g, " ") ?? "Log stream",
+      vector: vectorMatch?.[0] ?? "Unknown",
+      failed_logins: failedMatch?.[1] ?? "0",
+      bytes_out: bytesMatch?.[1] ?? "0",
+      privilege_change: privilegeMatch?.[1] ?? "no",
+      lateral_attempts: lateralMatch?.[1] ?? "0",
+      geo_velocity: geoMatch?.[1] ?? "low",
+    };
+  });
+
+  return mapRecordsToAlerts(records);
+}
+
+export async function parseExcelToAlerts(file: File): Promise<AlertRecord[]> {
+  const XLSX = await import("xlsx");
+  const buffer = await file.arrayBuffer();
+  const workbook = XLSX.read(buffer, { type: "array" });
+  const sheet = workbook.Sheets[workbook.SheetNames[0]];
+  const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, {
+    defval: "",
+  });
+
+  return mapRecordsToAlerts(rows.map(normalizeRecordKeys));
 }
 
 export function buildTimeline(alerts: AlertRecord[]) {

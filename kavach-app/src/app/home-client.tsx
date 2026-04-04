@@ -1,11 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ChangeEvent } from "react";
 import {
   ALERT_STORAGE_KEY,
+  type AlertRecord,
   buildTimeline,
   parseCsvToAlerts,
+  parseExcelToAlerts,
+  parseJsonToAlerts,
+  parseLogTextToAlerts,
   sampleAlerts,
   sampleCsv,
   summarizeAlerts,
@@ -15,27 +19,85 @@ import { ThemeToggle } from "./theme-toggle";
 export function HomeClient() {
   const [csvInput, setCsvInput] = useState(sampleCsv);
   const [status, setStatus] = useState("Sample threat data loaded. Ready for triage.");
+  const [uploadLabel, setUploadLabel] = useState("No file selected yet.");
+  const [stagedAlerts, setStagedAlerts] = useState<AlertRecord[] | null>(null);
+  const [stagedInputKind, setStagedInputKind] = useState<"text" | "file">("text");
 
   const parsedAlerts = useMemo(() => {
+    if (stagedInputKind === "file" && stagedAlerts) {
+      return stagedAlerts.length > 0 ? stagedAlerts : sampleAlerts;
+    }
+
     const alerts = parseCsvToAlerts(csvInput);
     return alerts.length > 0 ? alerts : sampleAlerts;
-  }, [csvInput]);
+  }, [csvInput, stagedAlerts, stagedInputKind]);
 
   const stats = useMemo(() => summarizeAlerts(parsedAlerts), [parsedAlerts]);
   const primaryAlert = parsedAlerts[0];
   const timeline = buildTimeline(parsedAlerts);
 
-  function analyzeCsv() {
-    const alerts = parseCsvToAlerts(csvInput);
+  function publishAlerts(alerts: AlertRecord[], message: string) {
     if (alerts.length === 0) {
-      setStatus("No valid rows detected. Use the sample format or paste a valid CSV.");
+      setStatus(
+        "No valid threat records detected. Use the sample format or upload a supported file."
+      );
       return;
     }
 
     window.localStorage.setItem(ALERT_STORAGE_KEY, JSON.stringify(alerts));
-    setStatus(
+    window.dispatchEvent(new Event("kavach-alert-feed-change"));
+    setStatus(message);
+  }
+
+  function analyzeCsv() {
+    const alerts =
+      stagedInputKind === "file" && stagedAlerts ? stagedAlerts : parseCsvToAlerts(csvInput);
+
+    publishAlerts(
+      alerts,
       `Parsed ${alerts.length} alerts. Dashboard data updated with ${alerts.filter((alert) => alert.severity === "Critical").length} critical events.`
     );
+  }
+
+  async function handleFileUpload(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setUploadLabel(file.name);
+    const lower = file.name.toLowerCase();
+
+    try {
+      let alerts: AlertRecord[] = [];
+      let displayText = "";
+
+      if (lower.endsWith(".xlsx") || lower.endsWith(".xls")) {
+        alerts = await parseExcelToAlerts(file);
+        displayText = JSON.stringify(alerts, null, 2);
+      } else {
+        const text = await file.text();
+        displayText = text;
+
+        if (lower.endsWith(".csv")) {
+          alerts = parseCsvToAlerts(text);
+        } else if (lower.endsWith(".json")) {
+          alerts = parseJsonToAlerts(text);
+        } else if (lower.endsWith(".log") || lower.endsWith(".txt")) {
+          alerts = parseLogTextToAlerts(text);
+        } else {
+          setStatus("Unsupported file type. Upload CSV, JSON, LOG/TXT, or Excel.");
+          return;
+        }
+      }
+
+      setCsvInput(displayText);
+      setStagedAlerts(alerts);
+      setStagedInputKind("file");
+      setStatus(
+        `Loaded ${file.name}. Review the data and click Analyze Threat Data to push ${alerts.length} alerts to the command center.`
+      );
+    } catch {
+      setStatus("Upload parsing failed. Check the file structure and try again.");
+    }
   }
 
   return (
@@ -49,7 +111,7 @@ export function HomeClient() {
                   Security Investigation Copilot
                 </span>
                 <span className="rounded-full border border-emerald-400/25 bg-emerald-400/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.3em] text-emerald-200">
-                  CSV Triage Flow
+                  Multi-Format Ingestion
                 </span>
               </div>
               <ThemeToggle />
@@ -66,8 +128,8 @@ export function HomeClient() {
                 </span>
               </h1>
               <p className="max-w-2xl text-lg leading-8 text-muted md:text-xl">
-                Paste a threat CSV, generate structured alerts, and push the result
-                straight into the command center for investigation.
+                Paste or upload security data, generate structured alerts, and push
+                the result straight into the command center for investigation.
               </p>
             </div>
 
@@ -77,7 +139,7 @@ export function HomeClient() {
                 onClick={analyzeCsv}
                 className="inline-flex items-center justify-center rounded-full bg-cyan-300 px-6 py-3 text-sm font-semibold text-slate-950 transition hover:bg-cyan-200"
               >
-                Analyze Threat CSV
+                Analyze Threat Data
               </button>
               <Link
                 href="/dashboard"
@@ -115,25 +177,61 @@ export function HomeClient() {
                     Upload Simulator
                   </p>
                   <h2 className="mt-2 text-2xl font-semibold text-foreground">
-                    Threat CSV input
+                    Threat data input
                   </h2>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setCsvInput(sampleCsv)}
-                  className="rounded-full border border-line bg-panel-strong px-4 py-2 text-sm font-medium text-foreground transition hover:border-cyan-300/30"
-                >
-                  Reset sample
-                </button>
+                <div className="flex flex-wrap gap-3">
+                  <label className="inline-flex cursor-pointer items-center rounded-full border border-line bg-panel-strong px-4 py-2 text-sm font-medium text-foreground transition hover:border-cyan-300/30">
+                    Upload file
+                    <input
+                      type="file"
+                      accept=".csv,.json,.log,.txt,.xlsx,.xls"
+                      className="hidden"
+                      onChange={handleFileUpload}
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCsvInput(sampleCsv);
+                      setUploadLabel("No file selected yet.");
+                      setStagedAlerts(null);
+                      setStagedInputKind("text");
+                      setStatus("Sample threat data loaded. Ready for triage.");
+                    }}
+                    className="rounded-full border border-line bg-panel-strong px-4 py-2 text-sm font-medium text-foreground transition hover:border-cyan-300/30"
+                  >
+                    Reset sample
+                  </button>
+                </div>
               </div>
+
+              <p className="mt-5 text-sm text-muted">
+                Supported formats: CSV, JSON, LOG/TXT, XLSX
+              </p>
 
               <textarea
                 value={csvInput}
-                onChange={(event) => setCsvInput(event.target.value)}
+                onChange={(event) => {
+                  setCsvInput(event.target.value);
+                  if (stagedInputKind === "file") {
+                    setStagedAlerts(null);
+                    setStagedInputKind("text");
+                    setUploadLabel("Manual input mode");
+                  }
+                }}
+                onFocus={() => {
+                  if (stagedInputKind === "file") {
+                    setStatus(
+                      "Uploaded data is loaded. Edit the text only if you want to switch back to manual input."
+                    );
+                  }
+                }}
                 className="mt-5 min-h-52 w-full rounded-[1.25rem] border border-line bg-panel-strong p-4 font-mono text-sm leading-7 text-foreground outline-none transition focus:border-cyan-300/45"
                 spellCheck={false}
               />
 
+              <p className="mt-4 text-sm text-muted">{uploadLabel}</p>
               <p className="mt-4 text-sm text-muted">{status}</p>
             </div>
           </div>
