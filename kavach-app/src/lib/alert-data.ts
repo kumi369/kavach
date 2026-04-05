@@ -69,6 +69,39 @@ export type UploadFormat = "csv" | "json" | "log" | "excel";
 
 type RawThreatRecord = Record<string, string>;
 
+function parseCsvLine(line: string) {
+  const values: string[] = [];
+  let current = "";
+  let inQuotes = false;
+
+  for (let index = 0; index < line.length; index += 1) {
+    const character = line[index];
+
+    if (character === '"') {
+      const nextCharacter = line[index + 1];
+
+      if (inQuotes && nextCharacter === '"') {
+        current += '"';
+        index += 1;
+      } else {
+        inQuotes = !inQuotes;
+      }
+      continue;
+    }
+
+    if (character === "," && !inQuotes) {
+      values.push(current.trim());
+      current = "";
+      continue;
+    }
+
+    current += character;
+  }
+
+  values.push(current.trim());
+  return values;
+}
+
 function formatRelativeTime(index: number, rawTimestamp: string | undefined) {
   const trimmed = (rawTimestamp ?? "").trim();
   if (trimmed) return trimmed;
@@ -100,9 +133,9 @@ export function parseCsvToAlerts(csvText: string): AlertRecord[] {
 
   if (rows.length < 2) return [];
 
-  const headers = rows[0].split(",").map((header) => header.trim().toLowerCase());
+  const headers = parseCsvLine(rows[0]).map((header) => header.trim().toLowerCase());
   const rawRecords = rows.slice(1).map((row) => {
-    const values = row.split(",").map((value) => value.trim());
+    const values = parseCsvLine(row);
     return Object.fromEntries(
       headers.map((header, headerIndex) => [header, values[headerIndex] ?? ""])
     );
@@ -183,6 +216,24 @@ export function parseJsonToAlerts(jsonText: string): AlertRecord[] {
   const parsed = JSON.parse(jsonText) as Record<string, unknown> | Record<string, unknown>[];
   const records = Array.isArray(parsed) ? parsed : [parsed];
   return mapRecordsToAlerts(records.map(normalizeRecordKeys));
+}
+
+export function detectThreatTextFormat(text: string): UploadFormat {
+  const trimmed = text.trim();
+
+  if (!trimmed) return "csv";
+  if (trimmed.startsWith("{") || trimmed.startsWith("[")) return "json";
+  if (/(source=|failed(?:_logins| logins)?=|bytes(?:_out)?=)/i.test(trimmed)) {
+    return "log";
+  }
+
+  return "csv";
+}
+
+export function parseThreatText(text: string, format: UploadFormat) {
+  if (format === "json") return parseJsonToAlerts(text);
+  if (format === "log") return parseLogTextToAlerts(text);
+  return parseCsvToAlerts(text);
 }
 
 export function parseLogTextToAlerts(logText: string): AlertRecord[] {

@@ -31,10 +31,12 @@ function severityTone(severity: AlertRecord["severity"]) {
 
 export function IncidentDetailClient({ alertId }: { alertId: string }) {
   const [alerts, setAlerts] = useState<AlertRecord[]>(sampleAlerts);
+  const [isHydrated, setIsHydrated] = useState(false);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
       setAlerts(readStoredAlerts());
+      setIsHydrated(true);
     }, 0);
 
     return () => {
@@ -53,6 +55,22 @@ export function IncidentDetailClient({ alertId }: { alertId: string }) {
       .filter((entry) => entry.id !== alert.id && entry.owner === alert.owner)
       .slice(0, 3);
   }, [alert, alerts]);
+
+  if (!isHydrated) {
+    return (
+      <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 px-6 py-8 md:px-10">
+        <section className="rounded-[2rem] border border-line bg-surface p-8 text-center shadow-[0_25px_80px_var(--shadow)]">
+          <p className="text-sm uppercase tracking-[0.35em] text-muted">Incident View</p>
+          <h1 className="mt-3 text-3xl font-semibold text-foreground">
+            Loading incident
+          </h1>
+          <p className="mt-4 text-muted">
+            Pulling the latest parsed alert feed into the investigation view.
+          </p>
+        </section>
+      </main>
+    );
+  }
 
   if (!alert) {
     return (

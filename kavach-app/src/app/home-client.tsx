@@ -6,13 +6,16 @@ import {
   ALERT_STORAGE_KEY,
   type AlertRecord,
   buildTimeline,
+  detectThreatTextFormat,
   parseCsvToAlerts,
   parseExcelToAlerts,
   parseJsonToAlerts,
   parseLogTextToAlerts,
+  parseThreatText,
   sampleAlerts,
   sampleCsv,
   summarizeAlerts,
+  type UploadFormat,
 } from "@/lib/alert-data";
 import { ThemeToggle } from "./theme-toggle";
 
@@ -22,15 +25,16 @@ export function HomeClient() {
   const [uploadLabel, setUploadLabel] = useState("No file selected yet.");
   const [stagedAlerts, setStagedAlerts] = useState<AlertRecord[] | null>(null);
   const [stagedInputKind, setStagedInputKind] = useState<"text" | "file">("text");
+  const [textFormat, setTextFormat] = useState<UploadFormat>("csv");
 
   const parsedAlerts = useMemo(() => {
     if (stagedInputKind === "file" && stagedAlerts) {
       return stagedAlerts.length > 0 ? stagedAlerts : sampleAlerts;
     }
 
-    const alerts = parseCsvToAlerts(csvInput);
+    const alerts = parseThreatText(csvInput, textFormat);
     return alerts.length > 0 ? alerts : sampleAlerts;
-  }, [csvInput, stagedAlerts, stagedInputKind]);
+  }, [csvInput, stagedAlerts, stagedInputKind, textFormat]);
 
   const stats = useMemo(() => summarizeAlerts(parsedAlerts), [parsedAlerts]);
   const primaryAlert = parsedAlerts[0];
@@ -51,7 +55,9 @@ export function HomeClient() {
 
   function analyzeCsv() {
     const alerts =
-      stagedInputKind === "file" && stagedAlerts ? stagedAlerts : parseCsvToAlerts(csvInput);
+      stagedInputKind === "file" && stagedAlerts
+        ? stagedAlerts
+        : parseThreatText(csvInput, textFormat);
 
     publishAlerts(
       alerts,
@@ -69,20 +75,25 @@ export function HomeClient() {
     try {
       let alerts: AlertRecord[] = [];
       let displayText = "";
+      let nextTextFormat: UploadFormat = "csv";
 
       if (lower.endsWith(".xlsx") || lower.endsWith(".xls")) {
         alerts = await parseExcelToAlerts(file);
         displayText = JSON.stringify(alerts, null, 2);
+        nextTextFormat = "json";
       } else {
         const text = await file.text();
         displayText = text;
 
         if (lower.endsWith(".csv")) {
           alerts = parseCsvToAlerts(text);
+          nextTextFormat = "csv";
         } else if (lower.endsWith(".json")) {
           alerts = parseJsonToAlerts(text);
+          nextTextFormat = "json";
         } else if (lower.endsWith(".log") || lower.endsWith(".txt")) {
           alerts = parseLogTextToAlerts(text);
+          nextTextFormat = "log";
         } else {
           setStatus("Unsupported file type. Upload CSV, JSON, LOG/TXT, or Excel.");
           return;
@@ -92,6 +103,7 @@ export function HomeClient() {
       setCsvInput(displayText);
       setStagedAlerts(alerts);
       setStagedInputKind("file");
+      setTextFormat(nextTextFormat);
       setStatus(
         `Loaded ${file.name}. Review the data and click Analyze Threat Data to push ${alerts.length} alerts to the command center.`
       );
@@ -197,6 +209,7 @@ export function HomeClient() {
                       setUploadLabel("No file selected yet.");
                       setStagedAlerts(null);
                       setStagedInputKind("text");
+                      setTextFormat("csv");
                       setStatus("Sample threat data loaded. Ready for triage.");
                     }}
                     className="rounded-full border border-line bg-panel-strong px-4 py-2 text-sm font-medium text-foreground transition hover:border-cyan-300/30"
@@ -213,12 +226,14 @@ export function HomeClient() {
               <textarea
                 value={csvInput}
                 onChange={(event) => {
-                  setCsvInput(event.target.value);
+                  const nextValue = event.target.value;
+                  setCsvInput(nextValue);
                   if (stagedInputKind === "file") {
                     setStagedAlerts(null);
                     setStagedInputKind("text");
                     setUploadLabel("Manual input mode");
                   }
+                  setTextFormat(detectThreatTextFormat(nextValue));
                 }}
                 onFocus={() => {
                   if (stagedInputKind === "file") {
