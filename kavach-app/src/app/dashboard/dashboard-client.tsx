@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import {
   ALERT_STORAGE_KEY,
@@ -112,8 +113,9 @@ export function DashboardClient() {
 
           <div className="mt-5 space-y-4">
             {alerts.map((alert) => (
-              <div
+              <Link
                 key={alert.id}
+                href={`/dashboard/${alert.id}`}
                 className="rounded-2xl border border-line bg-panel p-4 transition hover:border-cyan-300/25 hover:bg-panel-strong"
               >
                 <div className="flex flex-wrap items-center justify-between gap-3">
@@ -134,7 +136,7 @@ export function DashboardClient() {
                   <span>{alert.time}</span>
                   <span>{alert.vector}</span>
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         </div>
