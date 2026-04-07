@@ -7,6 +7,8 @@ import {
   sampleAlerts,
   type AlertRecord,
 } from "@/lib/alert-data";
+import { getIncidentNote, saveIncidentNote } from "@/lib/incident-notes";
+import { exportIncidentReport } from "@/lib/report-export";
 
 function readStoredAlerts() {
   try {
@@ -32,17 +34,20 @@ function severityTone(severity: AlertRecord["severity"]) {
 export function IncidentDetailClient({ alertId }: { alertId: string }) {
   const [alerts, setAlerts] = useState<AlertRecord[]>(sampleAlerts);
   const [isHydrated, setIsHydrated] = useState(false);
+  const [analystNote, setAnalystNote] = useState("");
+  const [noteStatus, setNoteStatus] = useState("No saved note yet.");
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
       setAlerts(readStoredAlerts());
+      setAnalystNote(getIncidentNote(alertId));
       setIsHydrated(true);
     }, 0);
 
     return () => {
       window.clearTimeout(timer);
     };
-  }, []);
+  }, [alertId]);
 
   const alert = useMemo(
     () => alerts.find((entry) => entry.id.toLowerCase() === alertId.toLowerCase()) ?? null,
@@ -122,6 +127,13 @@ export function IncidentDetailClient({ alertId }: { alertId: string }) {
             >
               {alert.severity}
             </span>
+            <button
+              type="button"
+              onClick={() => exportIncidentReport(alert, relatedAlerts, analystNote)}
+              className="inline-flex items-center justify-center rounded-full bg-cyan-300 px-5 py-2 text-sm font-semibold text-slate-950 transition hover:bg-cyan-200"
+            >
+              Export Incident
+            </button>
             <Link
               href="/dashboard"
               className="inline-flex items-center justify-center rounded-full border border-line bg-panel px-5 py-2 text-sm font-semibold text-foreground transition hover:border-cyan-300/30 hover:bg-panel-strong"
@@ -218,20 +230,33 @@ export function IncidentDetailClient({ alertId }: { alertId: string }) {
               Investigation Notes
             </p>
             <h2 className="mt-2 text-2xl font-semibold text-foreground">
-              Triage summary
+              Analyst notes
             </h2>
-            <div className="mt-5 space-y-3 text-sm text-muted">
-              <div className="rounded-2xl border border-line bg-panel p-4">
+            <div className="mt-5 space-y-4">
+              <textarea
+                value={analystNote}
+                onChange={(event) => setAnalystNote(event.target.value)}
+                placeholder="Add analyst observations, containment notes, and escalation summary here."
+                className="min-h-48 w-full rounded-[1.25rem] border border-line bg-panel p-4 text-sm leading-7 text-foreground outline-none transition focus:border-cyan-300/45"
+                spellCheck={false}
+              />
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <p className="text-sm text-muted">{noteStatus}</p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    saveIncidentNote(alert.id, analystNote);
+                    setNoteStatus("Analyst note saved for this incident.");
+                  }}
+                  className="rounded-full border border-line bg-panel px-4 py-2 text-sm font-semibold text-foreground transition hover:border-cyan-300/30 hover:bg-panel-strong"
+                >
+                  Save Notes
+                </button>
+              </div>
+              <div className="rounded-2xl border border-line bg-panel p-4 text-sm text-muted">
                 Primary entity `{alert.owner}` triggered a `{alert.vector}` pattern with
-                `{alert.confidence}%` confidence.
-              </div>
-              <div className="rounded-2xl border border-line bg-panel p-4">
-                Severity `{alert.severity}` indicates this event should be reviewed in the
-                current investigation window.
-              </div>
-              <div className="rounded-2xl border border-line bg-panel p-4">
-                Recommended action `{alert.action}` is based on the current rule-based
-                scoring engine and should be verified by the analyst.
+                `{alert.confidence}%` confidence. Recommended action `{alert.action}` should
+                be validated before closure.
               </div>
             </div>
           </section>

@@ -9,6 +9,7 @@ import {
   summarizeAlerts,
   type AlertRecord,
 } from "@/lib/alert-data";
+import { exportDashboardReport } from "@/lib/report-export";
 
 const ALERT_EVENT = "kavach-alert-feed-change";
 
@@ -67,7 +68,17 @@ export function DashboardClient() {
             reflect real triage output instead of static shell data.
           </p>
         </div>
-        <div className="grid grid-cols-2 gap-3 text-sm md:grid-cols-4">
+        <div className="flex flex-col gap-3">
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={() => exportDashboardReport(alerts)}
+              className="rounded-full bg-cyan-300 px-5 py-2 text-sm font-semibold text-slate-950 transition hover:bg-cyan-200"
+            >
+              Export Report
+            </button>
+          </div>
+          <div className="grid grid-cols-2 gap-3 text-sm md:grid-cols-4">
           <div className="rounded-2xl border border-line bg-panel p-4">
             <p className="text-muted">Open alerts</p>
             <p className="mt-2 text-2xl font-semibold text-foreground">
@@ -92,6 +103,7 @@ export function DashboardClient() {
               {stats.averageConfidence}%
             </p>
           </div>
+        </div>
         </div>
       </section>
 
