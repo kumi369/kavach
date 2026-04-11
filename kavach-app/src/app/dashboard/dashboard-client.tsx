@@ -4,7 +4,9 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import {
   ALERT_STORAGE_KEY,
+  buildSeverityData,
   buildTimeline,
+  buildVectorData,
   sampleAlerts,
   summarizeAlerts,
   type AlertRecord,
@@ -48,10 +50,24 @@ function useStoredAlerts() {
   return alerts;
 }
 
+function severityColor(severity: AlertRecord["severity"]) {
+  if (severity === "Critical") return "bg-rose-300";
+  if (severity === "High") return "bg-cyan-300";
+  if (severity === "Medium") return "bg-amber-200";
+  return "bg-emerald-300";
+}
+
 export function DashboardClient() {
   const alerts = useStoredAlerts();
   const stats = summarizeAlerts(alerts);
   const timeline = buildTimeline(alerts);
+  const severityData = buildSeverityData(alerts);
+  const vectorData = buildVectorData(alerts);
+  const topConfidenceAlerts = [...alerts]
+    .sort((left, right) => right.confidence - left.confidence)
+    .slice(0, 5);
+  const maxSeverityCount = Math.max(...severityData.map((entry) => entry.count), 1);
+  const maxVectorCount = Math.max(...vectorData.map((entry) => entry.count), 1);
 
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-6 px-6 py-8 md:px-10">
@@ -79,31 +95,132 @@ export function DashboardClient() {
             </button>
           </div>
           <div className="grid grid-cols-2 gap-3 text-sm md:grid-cols-4">
-          <div className="rounded-2xl border border-line bg-panel p-4">
-            <p className="text-muted">Open alerts</p>
-            <p className="mt-2 text-2xl font-semibold text-foreground">
-              {stats.openAlerts}
-            </p>
-          </div>
-          <div className="rounded-2xl border border-line bg-panel p-4">
-            <p className="text-muted">Critical</p>
-            <p className="mt-2 text-2xl font-semibold text-rose-200">
-              {String(stats.critical).padStart(2, "0")}
-            </p>
-          </div>
-          <div className="rounded-2xl border border-line bg-panel p-4">
-            <p className="text-muted">High-risk</p>
-            <p className="mt-2 text-2xl font-semibold text-cyan-200">
-              {String(stats.highRisk).padStart(2, "0")}
-            </p>
-          </div>
-          <div className="rounded-2xl border border-line bg-panel p-4">
-            <p className="text-muted">Avg confidence</p>
-            <p className="mt-2 text-2xl font-semibold text-foreground">
-              {stats.averageConfidence}%
-            </p>
+            <div className="rounded-2xl border border-line bg-panel p-4">
+              <p className="text-muted">Open alerts</p>
+              <p className="mt-2 text-2xl font-semibold text-foreground">
+                {stats.openAlerts}
+              </p>
+            </div>
+            <div className="rounded-2xl border border-line bg-panel p-4">
+              <p className="text-muted">Critical</p>
+              <p className="mt-2 text-2xl font-semibold text-rose-200">
+                {String(stats.critical).padStart(2, "0")}
+              </p>
+            </div>
+            <div className="rounded-2xl border border-line bg-panel p-4">
+              <p className="text-muted">High-risk</p>
+              <p className="mt-2 text-2xl font-semibold text-cyan-200">
+                {String(stats.highRisk).padStart(2, "0")}
+              </p>
+            </div>
+            <div className="rounded-2xl border border-line bg-panel p-4">
+              <p className="text-muted">Avg confidence</p>
+              <p className="mt-2 text-2xl font-semibold text-foreground">
+                {stats.averageConfidence}%
+              </p>
+            </div>
           </div>
         </div>
+      </section>
+
+      <section className="grid gap-6 xl:grid-cols-[0.85fr_0.85fr_1.15fr]">
+        <div className="rounded-[1.75rem] border border-line bg-surface p-6 backdrop-blur">
+          <p className="text-sm uppercase tracking-[0.35em] text-muted">
+            Severity Map
+          </p>
+          <h2 className="mt-2 text-2xl font-semibold text-foreground">
+            Alert distribution
+          </h2>
+          <div className="mt-6 space-y-4">
+            {severityData.map((entry) => (
+              <div key={entry.severity} className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="font-medium text-foreground">{entry.severity}</span>
+                  <span className="text-muted">{entry.count}</span>
+                </div>
+                <div className="h-3 overflow-hidden rounded-full bg-panel-strong">
+                  <div
+                    className={`h-full rounded-full ${severityColor(entry.severity)}`}
+                    style={{ width: `${(entry.count / maxSeverityCount) * 100}%` }}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="rounded-[1.75rem] border border-line bg-surface p-6 backdrop-blur">
+          <p className="text-sm uppercase tracking-[0.35em] text-muted">
+            Vector Intel
+          </p>
+          <h2 className="mt-2 text-2xl font-semibold text-foreground">
+            Top attack patterns
+          </h2>
+          <div className="mt-6 space-y-4">
+            {vectorData.length > 0 ? (
+              vectorData.map((entry) => (
+                <div key={entry.vector} className="rounded-2xl border border-line bg-panel p-4">
+                  <div className="flex items-center justify-between gap-3 text-sm">
+                    <span className="font-medium text-foreground">{entry.vector}</span>
+                    <span className="text-muted">{entry.count} alerts</span>
+                  </div>
+                  <div className="mt-3 h-2 overflow-hidden rounded-full bg-panel-strong">
+                    <div
+                      className="h-full rounded-full bg-cyan-300"
+                      style={{ width: `${(entry.count / maxVectorCount) * 100}%` }}
+                    />
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="rounded-2xl border border-line bg-panel p-4 text-sm text-muted">
+                No vectors available in the current alert feed.
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="rounded-[1.75rem] border border-line bg-surface p-6 backdrop-blur">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-sm uppercase tracking-[0.35em] text-muted">
+                Confidence Heat
+              </p>
+              <h2 className="mt-2 text-2xl font-semibold text-foreground">
+                Highest-risk signals
+              </h2>
+            </div>
+            <span className="rounded-full border border-rose-300/20 bg-rose-400/10 px-3 py-1 text-xs font-semibold text-rose-100">
+              Live feed
+            </span>
+          </div>
+          <div className="mt-6 space-y-4">
+            {topConfidenceAlerts.map((alert) => (
+              <Link
+                key={alert.id}
+                href={`/dashboard/${alert.id}`}
+                className="block rounded-2xl border border-line bg-panel p-4 transition hover:border-cyan-300/30 hover:bg-panel-strong"
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.25em] text-muted">
+                      {alert.id}
+                    </p>
+                    <p className="mt-1 font-semibold text-foreground">{alert.title}</p>
+                  </div>
+                  <span className="text-lg font-semibold text-foreground">
+                    {alert.confidence}%
+                  </span>
+                </div>
+                <div className="mt-3 h-2 overflow-hidden rounded-full bg-panel-strong">
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-cyan-300 via-amber-200 to-rose-300"
+                    style={{ width: `${alert.confidence}%` }}
+                  />
+                </div>
+              </Link>
+            ))}
+          </div>
         </div>
       </section>
 

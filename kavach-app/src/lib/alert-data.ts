@@ -14,6 +14,8 @@ export type AlertRecord = {
   reasons: string[];
 };
 
+export const severityOrder: Severity[] = ["Critical", "High", "Medium", "Low"];
+
 export const sampleCsv = `timestamp,source,vector,failed_logins,bytes_out,privilege_change,lateral_attempts,geo_velocity
 08:41,Identity perimeter,SSH,14,18400,yes,3,high
 08:43,Edge network,Port sweep,0,9200,no,1,medium
@@ -281,9 +283,35 @@ export async function parseExcelToAlerts(file: File): Promise<AlertRecord[]> {
 
 export function buildTimeline(alerts: AlertRecord[]) {
   return alerts.slice(0, 4).map((alert) => {
-    const reason = alert.reasons[0] ?? "Activity requires review";
-    return `${alert.time} ${reason}`;
+    if (alert.severity === "Critical") {
+      return `${alert.time} ${alert.title} escalated on ${alert.owner}`;
+    }
+
+    if (alert.severity === "High") {
+      return `${alert.time} ${alert.title} flagged for analyst review`;
+    }
+
+    return `${alert.time} ${alert.vector} activity observed on ${alert.owner}`;
   });
+}
+
+export function buildSeverityData(alerts: AlertRecord[]) {
+  return severityOrder.map((severity) => ({
+    severity,
+    count: alerts.filter((alert) => alert.severity === severity).length,
+  }));
+}
+
+export function buildVectorData(alerts: AlertRecord[]) {
+  const vectorCounts = alerts.reduce<Record<string, number>>((counts, alert) => {
+    counts[alert.vector] = (counts[alert.vector] ?? 0) + 1;
+    return counts;
+  }, {});
+
+  return Object.entries(vectorCounts)
+    .map(([vector, count]) => ({ vector, count }))
+    .sort((left, right) => right.count - left.count)
+    .slice(0, 5);
 }
 
 export function summarizeAlerts(alerts: AlertRecord[]) {

@@ -1,4 +1,10 @@
-import { buildTimeline, summarizeAlerts, type AlertRecord } from "./alert-data";
+import {
+  buildSeverityData,
+  buildTimeline,
+  buildVectorData,
+  summarizeAlerts,
+  type AlertRecord,
+} from "./alert-data";
 
 function downloadTextFile(filename: string, content: string) {
   const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
@@ -17,6 +23,11 @@ function sanitizeFilenamePart(value: string) {
 export function exportDashboardReport(alerts: AlertRecord[]) {
   const stats = summarizeAlerts(alerts);
   const timeline = buildTimeline(alerts);
+  const severityData = buildSeverityData(alerts);
+  const vectorData = buildVectorData(alerts);
+  const topConfidenceAlerts = [...alerts]
+    .sort((left, right) => right.confidence - left.confidence)
+    .slice(0, 5);
   const generatedAt = new Date().toLocaleString("en-IN", {
     dateStyle: "medium",
     timeStyle: "short",
@@ -31,6 +42,19 @@ export function exportDashboardReport(alerts: AlertRecord[]) {
     `Critical alerts: ${stats.critical}`,
     `High-risk alerts: ${stats.highRisk}`,
     `Average confidence: ${stats.averageConfidence}%`,
+    "",
+    "SEVERITY DISTRIBUTION",
+    ...severityData.map((entry) => `${entry.severity}: ${entry.count}`),
+    "",
+    "TOP ATTACK VECTORS",
+    ...(vectorData.length > 0
+      ? vectorData.map((entry, index) => `${index + 1}. ${entry.vector}: ${entry.count}`)
+      : ["No vectors available."]),
+    "",
+    "HIGHEST-RISK SIGNALS",
+    ...topConfidenceAlerts.map(
+      (alert, index) => `${index + 1}. ${alert.id} | ${alert.title} | ${alert.confidence}%`
+    ),
     "",
     "TIMELINE",
     ...timeline.map((entry, index) => `${index + 1}. ${entry}`),
