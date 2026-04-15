@@ -19,6 +19,14 @@ import {
 } from "@/lib/alert-data";
 import { ThemeToggle } from "./theme-toggle";
 
+function safeParseThreatText(input: string, format: UploadFormat) {
+  try {
+    return parseThreatText(input, format);
+  } catch {
+    return [];
+  }
+}
+
 export function HomeClient() {
   const [csvInput, setCsvInput] = useState(sampleCsv);
   const [status, setStatus] = useState("Sample threat data loaded. Ready for triage.");
@@ -32,7 +40,7 @@ export function HomeClient() {
       return stagedAlerts.length > 0 ? stagedAlerts : sampleAlerts;
     }
 
-    const alerts = parseThreatText(csvInput, textFormat);
+    const alerts = safeParseThreatText(csvInput, textFormat);
     return alerts.length > 0 ? alerts : sampleAlerts;
   }, [csvInput, stagedAlerts, stagedInputKind, textFormat]);
 
@@ -48,16 +56,22 @@ export function HomeClient() {
       return;
     }
 
-    window.localStorage.setItem(ALERT_STORAGE_KEY, JSON.stringify(alerts));
-    window.dispatchEvent(new Event("kavach-alert-feed-change"));
-    setStatus(message);
+    try {
+      window.localStorage.setItem(ALERT_STORAGE_KEY, JSON.stringify(alerts));
+      window.dispatchEvent(new Event("kavach-alert-feed-change"));
+      setStatus(message);
+    } catch {
+      setStatus(
+        "Alerts were parsed, but browser storage is blocked. Enable site storage to update the command center."
+      );
+    }
   }
 
   function analyzeCsv() {
     const alerts =
       stagedInputKind === "file" && stagedAlerts
         ? stagedAlerts
-        : parseThreatText(csvInput, textFormat);
+        : safeParseThreatText(csvInput, textFormat);
 
     publishAlerts(
       alerts,

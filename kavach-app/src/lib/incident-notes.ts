@@ -12,7 +12,11 @@ function readNotesMap() {
 }
 
 function writeNotesMap(notesMap: IncidentNotesMap) {
-  window.localStorage.setItem(INCIDENT_NOTES_KEY, JSON.stringify(notesMap));
+  try {
+    window.localStorage.setItem(INCIDENT_NOTES_KEY, JSON.stringify(notesMap));
+  } catch {
+    // Notes persistence is best-effort in private or storage-blocked browsers.
+  }
 }
 
 export function getIncidentNote(alertId: string) {

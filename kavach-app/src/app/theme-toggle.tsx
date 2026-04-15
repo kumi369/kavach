@@ -12,8 +12,15 @@ export function ThemeToggle() {
 
   useEffect(() => {
     const syncTheme = () => {
-      const storedTheme =
-        window.localStorage.getItem(STORAGE_KEY) === "light" ? "light" : "dark";
+      let storedTheme: Theme = "dark";
+
+      try {
+        storedTheme =
+          window.localStorage.getItem(STORAGE_KEY) === "light" ? "light" : "dark";
+      } catch {
+        storedTheme = "dark";
+      }
+
       setTheme(storedTheme);
       document.documentElement.dataset.theme = storedTheme;
     };
@@ -35,7 +42,11 @@ export function ThemeToggle() {
   function updateTheme(nextTheme: Theme) {
     setTheme(nextTheme);
     document.documentElement.dataset.theme = nextTheme;
-    window.localStorage.setItem(STORAGE_KEY, nextTheme);
+    try {
+      window.localStorage.setItem(STORAGE_KEY, nextTheme);
+    } catch {
+      // Theme still updates for the current page even when storage is blocked.
+    }
     window.dispatchEvent(new Event(THEME_EVENT));
   }
 
