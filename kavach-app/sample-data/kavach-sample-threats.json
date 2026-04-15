@@ -1,0 +1,52 @@
+[
+  {
+    "timestamp": "10:02",
+    "source": "Admin gateway",
+    "vector": "SSH",
+    "failed_logins": 18,
+    "bytes_out": 21500,
+    "privilege_change": "yes",
+    "lateral_attempts": 4,
+    "geo_velocity": "high"
+  },
+  {
+    "timestamp": "10:07",
+    "source": "Payroll subnet",
+    "vector": "Credential abuse",
+    "failed_logins": 11,
+    "bytes_out": 18400,
+    "privilege_change": "yes",
+    "lateral_attempts": 3,
+    "geo_velocity": "high"
+  },
+  {
+    "timestamp": "10:11",
+    "source": "Public edge",
+    "vector": "Port sweep",
+    "failed_logins": 2,
+    "bytes_out": 9800,
+    "privilege_change": "no",
+    "lateral_attempts": 2,
+    "geo_velocity": "medium"
+  },
+  {
+    "timestamp": "10:16",
+    "source": "DNS cluster",
+    "vector": "DNS anomaly",
+    "failed_logins": 5,
+    "bytes_out": 16200,
+    "privilege_change": "no",
+    "lateral_attempts": 1,
+    "geo_velocity": "high"
+  },
+  {
+    "timestamp": "10:22",
+    "source": "Finance host",
+    "vector": "Credential abuse",
+    "failed_logins": 9,
+    "bytes_out": 12500,
+    "privilege_change": "yes",
+    "lateral_attempts": 2,
+    "geo_velocity": "medium"
+  }
+]

@@ -6,7 +6,7 @@ KAVACH is an AI-style security investigation copilot that turns noisy threat tel
 
 - `kavach-app/` - Next.js command center UI.
 - `kavach-engine/` - Python threat scoring engine.
-- `kavach-app/sample-data/` - CSV, LOG, and Excel demo files.
+- `kavach-app/sample-data/` - CSV, JSON, LOG, and Excel demo files.
 
 ## Quick Start
 

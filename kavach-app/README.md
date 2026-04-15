@@ -42,7 +42,7 @@ Useful routes:
 
 1. Start the app with `npm run dev`.
 2. Open `http://localhost:3000`.
-3. Upload `sample-data/kavach-sample-threats.csv`, `sample-data/kavach-sample-threats.log`, or `sample-data/kavach-sample-threats.xlsx`.
+3. Upload `sample-data/kavach-sample-threats.csv`, `sample-data/kavach-sample-threats.json`, `sample-data/kavach-sample-threats.log`, or `sample-data/kavach-sample-threats.xlsx`.
 4. Review the preview text.
 5. Click `Analyze Threat Data`.
 6. Open the command center.
