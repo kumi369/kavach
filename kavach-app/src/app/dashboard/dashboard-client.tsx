@@ -80,12 +80,18 @@ export function DashboardClient() {
             Analyst dashboard
           </h1>
           <p className="mt-3 max-w-2xl text-muted">
-            Alert data is now driven by your parsed CSV feed, so the dashboard can
+            Alert data is driven by your parsed threat feed, so the dashboard can
             reflect real triage output instead of static shell data.
           </p>
         </div>
         <div className="flex flex-col gap-3">
-          <div className="flex justify-end">
+          <div className="flex flex-wrap justify-end gap-3">
+            <Link
+              href="/"
+              className="rounded-full border border-line bg-panel px-5 py-2 text-sm font-semibold text-foreground transition hover:border-cyan-300/30 hover:bg-panel-strong"
+            >
+              Upload More Data
+            </Link>
             <button
               type="button"
               onClick={() => exportDashboardReport(alerts)}

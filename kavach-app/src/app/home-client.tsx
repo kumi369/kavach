@@ -182,6 +182,30 @@ export function HomeClient() {
               </div>
             </div>
 
+            <section className="grid gap-3 md:grid-cols-4">
+              {[
+                ["01", "Ingest", "Upload CSV, JSON, LOG/TXT, or Excel threat data."],
+                ["02", "Score", "Convert raw events into confidence-ranked alerts."],
+                ["03", "Investigate", "Open each incident with reasons, action, and notes."],
+                ["04", "Report", "Export a command-center or incident-ready report."],
+              ].map(([step, title, description]) => (
+                <div
+                  key={step}
+                  className="rounded-2xl border border-line bg-panel p-4"
+                >
+                  <p className="text-xs font-semibold uppercase tracking-[0.3em] text-accent">
+                    {step}
+                  </p>
+                  <h3 className="mt-3 text-lg font-semibold text-foreground">
+                    {title}
+                  </h3>
+                  <p className="mt-2 text-sm leading-6 text-muted">
+                    {description}
+                  </p>
+                </div>
+              ))}
+            </section>
+
             <div className="rounded-[1.5rem] border border-line bg-panel p-5">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
