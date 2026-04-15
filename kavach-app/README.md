@@ -1,36 +1,68 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# KAVACH App
 
-## Getting Started
+KAVACH is a security investigation command center built with Next.js. It helps an analyst move from raw telemetry to structured triage: upload threat data, generate scored alerts, inspect incidents, write notes, and export reports.
 
-First, run the development server:
+## What KAVACH Does
 
-```bash
+- Accepts threat data in CSV, JSON, LOG/TXT, and XLSX formats.
+- Converts raw telemetry into normalized security alerts.
+- Scores confidence using failed logins, outbound traffic, privilege changes, lateral attempts, geo-velocity, and attack vector patterns.
+- Shows a command center with alert counts, severity distribution, top attack vectors, confidence heat, timeline, and alert queue.
+- Opens a detailed investigation page for each alert.
+- Saves analyst notes in browser storage so they survive refreshes.
+- Exports command center and incident reports as text files.
+- Supports black and light themes.
+
+## Tech Stack
+
+- Next.js 16
+- React 19
+- TypeScript
+- Tailwind CSS 4
+- XLSX parsing with `xlsx`
+- Browser localStorage for demo persistence
+- Companion Python scoring engine in `../kavach-engine`
+
+## Run Locally
+
+```powershell
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open `http://localhost:3000`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Useful routes:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- `/` - upload simulator and live triage preview.
+- `/dashboard` - command center.
+- `/dashboard/KV-240` - example incident detail after uploading the sample data.
 
-## Learn More
+## Demo Flow
 
-To learn more about Next.js, take a look at the following resources:
+1. Start the app with `npm run dev`.
+2. Open `http://localhost:3000`.
+3. Upload `sample-data/kavach-sample-threats.csv`, `sample-data/kavach-sample-threats.log`, or `sample-data/kavach-sample-threats.xlsx`.
+4. Review the preview text.
+5. Click `Analyze Threat Data`.
+6. Open the command center.
+7. Click a high-risk alert to inspect the incident.
+8. Add analyst notes and export the incident or dashboard report.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Sample CSV Shape
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```csv
+timestamp,source,vector,failed_logins,bytes_out,privilege_change,lateral_attempts,geo_velocity
+10:02,Admin gateway,SSH,18,21500,yes,4,high
+```
 
-## Deploy on Vercel
+## Quality Checks
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```powershell
+npm run lint
+npm run build
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Current Scope
+
+This is a portfolio-ready investigation copilot prototype. It is not a production SIEM replacement yet, but it demonstrates the full analyst loop: ingestion, scoring, dashboarding, incident review, notes, and reporting.

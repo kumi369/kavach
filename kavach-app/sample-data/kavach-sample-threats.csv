@@ -1,0 +1,6 @@
+timestamp,source,vector,failed_logins,bytes_out,privilege_change,lateral_attempts,geo_velocity
+10:02,Admin gateway,SSH,18,21500,yes,4,high
+10:07,Payroll subnet,Credential abuse,11,18400,yes,3,high
+10:11,Public edge,Port sweep,2,9800,no,2,medium
+10:16,DNS cluster,DNS anomaly,5,16200,no,1,high
+10:22,Finance host,Credential abuse,9,12500,yes,2,medium

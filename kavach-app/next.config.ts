@@ -1,7 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  // Keep Next.js file tracing scoped to this app even when parent folders contain lockfiles.
+  outputFileTracingRoot: process.cwd(),
 };
 
 export default nextConfig;

@@ -71,6 +71,34 @@ export type UploadFormat = "csv" | "json" | "log" | "excel";
 
 type RawThreatRecord = Record<string, string>;
 
+function isSeverity(value: unknown): value is Severity {
+  return severityOrder.includes(value as Severity);
+}
+
+function isAlertRecord(value: unknown): value is AlertRecord {
+  if (!value || typeof value !== "object") return false;
+
+  const record = value as Record<string, unknown>;
+  return (
+    typeof record.id === "string" &&
+    typeof record.title === "string" &&
+    isSeverity(record.severity) &&
+    typeof record.owner === "string" &&
+    typeof record.time === "string" &&
+    typeof record.vector === "string" &&
+    typeof record.action === "string" &&
+    Array.isArray(record.reasons)
+  );
+}
+
+function normalizeAlertRecord(record: AlertRecord): AlertRecord {
+  return {
+    ...record,
+    confidence: Math.max(0, Math.min(Number(record.confidence) || 0, 99)),
+    reasons: record.reasons.map(String).filter(Boolean),
+  };
+}
+
 function parseCsvLine(line: string) {
   const values: string[] = [];
   let current = "";
@@ -215,8 +243,13 @@ function mapRecordsToAlerts(records: RawThreatRecord[]) {
 }
 
 export function parseJsonToAlerts(jsonText: string): AlertRecord[] {
-  const parsed = JSON.parse(jsonText) as Record<string, unknown> | Record<string, unknown>[];
+  const parsed = JSON.parse(jsonText) as unknown;
   const records = Array.isArray(parsed) ? parsed : [parsed];
+
+  if (records.every(isAlertRecord)) {
+    return records.map(normalizeAlertRecord);
+  }
+
   return mapRecordsToAlerts(records.map(normalizeRecordKeys));
 }
 
