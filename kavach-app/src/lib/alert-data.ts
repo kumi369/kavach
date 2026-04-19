@@ -14,6 +14,11 @@ export type AlertRecord = {
   reasons: string[];
 };
 
+export type RiskSignal = {
+  label: string;
+  weight: number;
+};
+
 export const severityOrder: Severity[] = ["Critical", "High", "Medium", "Low"];
 
 export const sampleCsv = `timestamp,source,vector,failed_logins,bytes_out,privilege_change,lateral_attempts,geo_velocity
@@ -365,4 +370,38 @@ export function summarizeAlerts(alerts: AlertRecord[]) {
     highRisk,
     averageConfidence,
   };
+}
+
+export function buildRiskSignals(alert: AlertRecord): RiskSignal[] {
+  const signals = alert.reasons.map((reason) => {
+    const normalized = reason.toLowerCase();
+
+    if (normalized.includes("authentication") || normalized.includes("login")) {
+      return { label: "Identity anomaly", weight: 24 };
+    }
+
+    if (normalized.includes("outbound") || normalized.includes("traffic volume")) {
+      return { label: "Data movement", weight: 12 };
+    }
+
+    if (normalized.includes("privilege")) {
+      return { label: "Privilege change", weight: 22 };
+    }
+
+    if (normalized.includes("lateral")) {
+      return { label: "Lateral movement", weight: 18 };
+    }
+
+    if (normalized.includes("geo")) {
+      return { label: "Geo-velocity", weight: 14 };
+    }
+
+    if (normalized.includes("probing") || normalized.includes("reconnaissance")) {
+      return { label: "Recon pattern", weight: 10 };
+    }
+
+    return { label: "Baseline deviation", weight: 28 };
+  });
+
+  return signals.slice(0, 6);
 }

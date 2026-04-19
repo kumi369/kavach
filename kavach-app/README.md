@@ -8,9 +8,11 @@ KAVACH is a security investigation command center built with Next.js. It helps a
 - Converts raw telemetry into normalized security alerts.
 - Scores confidence using failed logins, outbound traffic, privilege changes, lateral attempts, geo-velocity, and attack vector patterns.
 - Shows a command center with alert counts, severity distribution, top attack vectors, confidence heat, timeline, and alert queue.
+- Filters the analyst queue by search query and severity.
 - Opens a detailed investigation page for each alert.
+- Explains incident confidence with weighted risk signals.
 - Saves analyst notes in browser storage so they survive refreshes.
-- Exports command center and incident reports as text files.
+- Exports command center and incident reports as text files or print/PDF-ready report views.
 - Supports black and light themes.
 
 ## Tech Stack

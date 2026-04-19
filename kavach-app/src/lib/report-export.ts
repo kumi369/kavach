@@ -20,7 +20,117 @@ function sanitizeFilenamePart(value: string) {
   return value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 }
 
+function escapeHtml(value: string) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function openPrintReport(title: string, body: string) {
+  const reportWindow = window.open("", "_blank", "noopener,noreferrer");
+  if (!reportWindow) return;
+
+  reportWindow.document.write(`
+    <!doctype html>
+    <html>
+      <head>
+        <title>${escapeHtml(title)}</title>
+        <style>
+          :root {
+            color: #111827;
+            font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+          }
+          body {
+            margin: 0;
+            background: #eef6ff;
+            padding: 32px;
+          }
+          main {
+            max-width: 900px;
+            margin: 0 auto;
+            border: 1px solid #dbeafe;
+            border-radius: 28px;
+            background: #ffffff;
+            padding: 40px;
+            box-shadow: 0 24px 80px rgba(15, 23, 42, 0.12);
+          }
+          h1 {
+            margin: 0 0 8px;
+            font-size: 32px;
+            letter-spacing: -0.03em;
+          }
+          pre {
+            white-space: pre-wrap;
+            word-break: break-word;
+            font: 14px/1.7 "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+          }
+          .meta {
+            margin-bottom: 28px;
+            color: #52667f;
+            font-size: 13px;
+            letter-spacing: 0.24em;
+            text-transform: uppercase;
+          }
+          .actions {
+            margin: 0 auto 18px;
+            max-width: 900px;
+            text-align: right;
+          }
+          button {
+            border: 0;
+            border-radius: 999px;
+            background: #67e8f9;
+            color: #0f172a;
+            cursor: pointer;
+            font-weight: 700;
+            padding: 10px 18px;
+          }
+          @media print {
+            body {
+              background: #ffffff;
+              padding: 0;
+            }
+            main {
+              border: 0;
+              border-radius: 0;
+              box-shadow: none;
+              max-width: none;
+              padding: 0;
+            }
+            .actions {
+              display: none;
+            }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="actions">
+          <button onclick="window.print()">Save as PDF / Print</button>
+        </div>
+        <main>
+          <p class="meta">KAVACH Security Investigation Report</p>
+          <h1>${escapeHtml(title)}</h1>
+          <pre>${escapeHtml(body)}</pre>
+        </main>
+      </body>
+    </html>
+  `);
+  reportWindow.document.close();
+}
+
 export function exportDashboardReport(alerts: AlertRecord[]) {
+  const content = buildDashboardReport(alerts);
+  downloadTextFile("kavach-command-center-report.txt", content);
+}
+
+export function exportDashboardPrintReport(alerts: AlertRecord[]) {
+  openPrintReport("KAVACH Command Center Report", buildDashboardReport(alerts));
+}
+
+function buildDashboardReport(alerts: AlertRecord[]) {
   const stats = summarizeAlerts(alerts);
   const timeline = buildTimeline(alerts);
   const severityData = buildSeverityData(alerts);
@@ -33,7 +143,7 @@ export function exportDashboardReport(alerts: AlertRecord[]) {
     timeStyle: "short",
   });
 
-  const content = [
+  return [
     "KAVACH COMMAND CENTER REPORT",
     `Generated: ${generatedAt}`,
     "",
@@ -72,11 +182,30 @@ export function exportDashboardReport(alerts: AlertRecord[]) {
       "",
     ]),
   ].join("\n");
-
-  downloadTextFile("kavach-command-center-report.txt", content);
 }
 
 export function exportIncidentReport(
+  alert: AlertRecord,
+  relatedAlerts: AlertRecord[],
+  analystNote = ""
+) {
+  const content = buildIncidentReport(alert, relatedAlerts, analystNote);
+
+  downloadTextFile(
+    `kavach-incident-${sanitizeFilenamePart(alert.id)}.txt`,
+    content
+  );
+}
+
+export function exportIncidentPrintReport(
+  alert: AlertRecord,
+  relatedAlerts: AlertRecord[],
+  analystNote = ""
+) {
+  openPrintReport(`KAVACH Incident ${alert.id}`, buildIncidentReport(alert, relatedAlerts, analystNote));
+}
+
+function buildIncidentReport(
   alert: AlertRecord,
   relatedAlerts: AlertRecord[],
   analystNote = ""
@@ -86,7 +215,7 @@ export function exportIncidentReport(
     timeStyle: "short",
   });
 
-  const content = [
+  return [
     "KAVACH INCIDENT REPORT",
     `Generated: ${generatedAt}`,
     "",
@@ -114,9 +243,4 @@ export function exportIncidentReport(
         )
       : ["No related alerts in current parsed feed."]),
   ].join("\n");
-
-  downloadTextFile(
-    `kavach-incident-${sanitizeFilenamePart(alert.id)}.txt`,
-    content
-  );
 }

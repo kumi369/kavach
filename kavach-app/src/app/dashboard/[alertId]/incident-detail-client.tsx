@@ -4,11 +4,12 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import {
   ALERT_STORAGE_KEY,
+  buildRiskSignals,
   sampleAlerts,
   type AlertRecord,
 } from "@/lib/alert-data";
 import { getIncidentNote, saveIncidentNote } from "@/lib/incident-notes";
-import { exportIncidentReport } from "@/lib/report-export";
+import { exportIncidentPrintReport, exportIncidentReport } from "@/lib/report-export";
 
 function readStoredAlerts() {
   try {
@@ -60,6 +61,11 @@ export function IncidentDetailClient({ alertId }: { alertId: string }) {
       .filter((entry) => entry.id !== alert.id && entry.owner === alert.owner)
       .slice(0, 3);
   }, [alert, alerts]);
+
+  const riskSignals = useMemo(() => {
+    if (!alert) return [];
+    return buildRiskSignals(alert);
+  }, [alert]);
 
   if (!isHydrated) {
     return (
@@ -132,7 +138,14 @@ export function IncidentDetailClient({ alertId }: { alertId: string }) {
               onClick={() => exportIncidentReport(alert, relatedAlerts, analystNote)}
               className="inline-flex items-center justify-center rounded-full bg-cyan-300 px-5 py-2 text-sm font-semibold text-slate-950 transition hover:bg-cyan-200"
             >
-              Export Incident
+              Export TXT
+            </button>
+            <button
+              type="button"
+              onClick={() => exportIncidentPrintReport(alert, relatedAlerts, analystNote)}
+              className="inline-flex items-center justify-center rounded-full bg-rose-200 px-5 py-2 text-sm font-semibold text-slate-950 transition hover:bg-rose-100"
+            >
+              Print/PDF
             </button>
             <Link
               href="/dashboard"
@@ -184,6 +197,46 @@ export function IncidentDetailClient({ alertId }: { alertId: string }) {
                 </li>
               ))}
             </ul>
+          </section>
+
+          <section className="rounded-[1.75rem] border border-line bg-surface p-6 backdrop-blur">
+            <p className="text-sm uppercase tracking-[0.35em] text-muted">
+              Risk Score
+            </p>
+            <h2 className="mt-2 text-2xl font-semibold text-foreground">
+              Confidence breakdown
+            </h2>
+            <div className="mt-5 space-y-4">
+              <div className="rounded-2xl border border-line bg-panel p-4">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted">Final confidence</span>
+                  <span className="font-semibold text-foreground">
+                    {alert.confidence}%
+                  </span>
+                </div>
+                <div className="mt-3 h-3 overflow-hidden rounded-full bg-panel-strong">
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-cyan-300 via-amber-200 to-rose-300"
+                    style={{ width: `${alert.confidence}%` }}
+                  />
+                </div>
+              </div>
+              <div className="grid gap-3 md:grid-cols-2">
+                {riskSignals.map((signal) => (
+                  <div
+                    key={signal.label}
+                    className="rounded-2xl border border-line bg-panel p-4"
+                  >
+                    <p className="text-sm font-semibold text-foreground">
+                      {signal.label}
+                    </p>
+                    <p className="mt-2 text-sm text-muted">
+                      +{signal.weight} risk weight
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
           </section>
 
           <section className="rounded-[1.75rem] border border-line bg-surface p-6 backdrop-blur">

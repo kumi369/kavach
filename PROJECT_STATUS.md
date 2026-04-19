@@ -17,11 +17,14 @@ KAVACH is ready as a portfolio/demo project. It demonstrates a complete analyst 
 - Client-side alert scoring and normalization.
 - Python scoring engine for offline telemetry conversion.
 - Dashboard metrics, severity map, attack vector chart, confidence heat, timeline, and alert feed.
+- Search and severity filters for the analyst alert queue.
 - Incident detail page with detection reasons, workflow guidance, notes, related alerts, and report export.
+- Incident risk score breakdown with weighted investigation signals.
 - Black/light theme.
 - Demo sample files.
 - README documentation and run instructions.
 - Production build verified.
+- Text export and print/PDF-ready report views.
 
 ## Demo Script
 
@@ -29,10 +32,10 @@ KAVACH is ready as a portfolio/demo project. It demonstrates a complete analyst 
 2. Upload `kavach-app/sample-data/kavach-sample-threats.csv`.
 3. Click `Analyze Threat Data`.
 4. Open the command center.
-5. Export the command-center report.
+5. Export the command-center report as TXT or open the print/PDF view.
 6. Open `KV-240`.
 7. Add analyst notes.
-8. Export the incident report.
+8. Export the incident report as TXT or print/save it as PDF.
 
 ## Honest Scope Boundary
 

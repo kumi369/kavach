@@ -10,8 +10,10 @@ import {
   sampleAlerts,
   summarizeAlerts,
   type AlertRecord,
+  type Severity,
 } from "@/lib/alert-data";
 import { exportDashboardReport } from "@/lib/report-export";
+import { exportDashboardPrintReport } from "@/lib/report-export";
 
 const ALERT_EVENT = "kavach-alert-feed-change";
 
@@ -59,10 +61,25 @@ function severityColor(severity: AlertRecord["severity"]) {
 
 export function DashboardClient() {
   const alerts = useStoredAlerts();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [severityFilter, setSeverityFilter] = useState<Severity | "All">("All");
   const stats = summarizeAlerts(alerts);
   const timeline = buildTimeline(alerts);
   const severityData = buildSeverityData(alerts);
   const vectorData = buildVectorData(alerts);
+  const filteredAlerts = alerts.filter((alert) => {
+    const query = searchQuery.trim().toLowerCase();
+    const matchesSeverity =
+      severityFilter === "All" || alert.severity === severityFilter;
+    const matchesQuery =
+      query.length === 0 ||
+      [alert.id, alert.title, alert.owner, alert.vector, alert.severity]
+        .join(" ")
+        .toLowerCase()
+        .includes(query);
+
+    return matchesSeverity && matchesQuery;
+  });
   const topConfidenceAlerts = [...alerts]
     .sort((left, right) => right.confidence - left.confidence)
     .slice(0, 5);
@@ -97,7 +114,14 @@ export function DashboardClient() {
               onClick={() => exportDashboardReport(alerts)}
               className="rounded-full bg-cyan-300 px-5 py-2 text-sm font-semibold text-slate-950 transition hover:bg-cyan-200"
             >
-              Export Report
+              Export TXT
+            </button>
+            <button
+              type="button"
+              onClick={() => exportDashboardPrintReport(alerts)}
+              className="rounded-full bg-rose-200 px-5 py-2 text-sm font-semibold text-slate-950 transition hover:bg-rose-100"
+            >
+              Print/PDF Report
             </button>
           </div>
           <div className="grid grid-cols-2 gap-3 text-sm md:grid-cols-4">
@@ -232,7 +256,7 @@ export function DashboardClient() {
 
       <section className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
         <div className="rounded-[1.75rem] border border-line bg-surface p-6 backdrop-blur">
-          <div className="flex items-center justify-between border-b border-line pb-4">
+          <div className="flex flex-wrap items-center justify-between gap-4 border-b border-line pb-4">
             <div>
               <p className="text-sm uppercase tracking-[0.35em] text-muted">
                 Alert Feed
@@ -242,12 +266,35 @@ export function DashboardClient() {
               </h2>
             </div>
             <span className="rounded-full border border-cyan-300/20 bg-cyan-300/10 px-3 py-1 text-xs font-semibold text-cyan-100">
-              Parsed feed
+              {filteredAlerts.length} visible
             </span>
           </div>
 
+          <div className="mt-5 grid gap-3 md:grid-cols-[1fr_12rem]">
+            <input
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
+              placeholder="Search id, owner, vector, or alert title..."
+              className="rounded-2xl border border-line bg-panel px-4 py-3 text-sm text-foreground outline-none transition placeholder:text-muted focus:border-cyan-300/45"
+            />
+            <select
+              value={severityFilter}
+              onChange={(event) =>
+                setSeverityFilter(event.target.value as Severity | "All")
+              }
+              className="rounded-2xl border border-line bg-panel px-4 py-3 text-sm text-foreground outline-none transition focus:border-cyan-300/45"
+            >
+              <option value="All">All severities</option>
+              <option value="Critical">Critical</option>
+              <option value="High">High</option>
+              <option value="Medium">Medium</option>
+              <option value="Low">Low</option>
+            </select>
+          </div>
+
           <div className="mt-5 space-y-4">
-            {alerts.map((alert) => (
+            {filteredAlerts.length > 0 ? (
+              filteredAlerts.map((alert) => (
               <Link
                 key={alert.id}
                 href={`/dashboard/${alert.id}`}
@@ -272,7 +319,12 @@ export function DashboardClient() {
                   <span>{alert.vector}</span>
                 </div>
               </Link>
-            ))}
+              ))
+            ) : (
+              <div className="rounded-2xl border border-line bg-panel p-6 text-sm text-muted">
+                No alerts match the current search and severity filter.
+              </div>
+            )}
           </div>
         </div>
 
