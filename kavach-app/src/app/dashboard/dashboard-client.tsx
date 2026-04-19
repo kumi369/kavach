@@ -13,8 +13,7 @@ import {
   type AlertRecord,
   type Severity,
 } from "@/lib/alert-data";
-import { exportDashboardReport } from "@/lib/report-export";
-import { exportDashboardPrintReport } from "@/lib/report-export";
+import { exportDashboardPrintReport, exportDashboardReport } from "@/lib/report-export";
 
 const ALERT_EVENT = "kavach-alert-feed-change";
 
@@ -299,7 +298,7 @@ export function DashboardClient() {
               <Link
                 key={alert.id}
                 href={`/dashboard/${alert.id}`}
-                className="rounded-2xl border border-line bg-panel p-4 transition hover:border-cyan-300/25 hover:bg-panel-strong"
+                className="block rounded-2xl border border-line bg-panel p-4 transition hover:border-cyan-300/25 hover:bg-panel-strong"
               >
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
