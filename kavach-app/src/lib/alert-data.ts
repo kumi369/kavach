@@ -258,6 +258,12 @@ export function parseJsonToAlerts(jsonText: string): AlertRecord[] {
   return mapRecordsToAlerts(records.map(normalizeRecordKeys));
 }
 
+export function normalizeAlertFeed(value: unknown) {
+  if (!Array.isArray(value)) return [];
+
+  return value.filter(isAlertRecord).map(normalizeAlertRecord);
+}
+
 export function detectThreatTextFormat(text: string): UploadFormat {
   const trimmed = text.trim();
 

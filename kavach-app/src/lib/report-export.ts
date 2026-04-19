@@ -30,9 +30,10 @@ function escapeHtml(value: string) {
 }
 
 function openPrintReport(title: string, body: string) {
-  const reportWindow = window.open("", "_blank", "noopener,noreferrer");
-  if (!reportWindow) return;
+  const reportWindow = window.open("", "_blank");
+  if (!reportWindow) return false;
 
+  reportWindow.opener = null;
   reportWindow.document.write(`
     <!doctype html>
     <html>
@@ -119,6 +120,8 @@ function openPrintReport(title: string, body: string) {
     </html>
   `);
   reportWindow.document.close();
+  reportWindow.focus();
+  return true;
 }
 
 export function exportDashboardReport(alerts: AlertRecord[]) {
@@ -127,7 +130,12 @@ export function exportDashboardReport(alerts: AlertRecord[]) {
 }
 
 export function exportDashboardPrintReport(alerts: AlertRecord[]) {
-  openPrintReport("KAVACH Command Center Report", buildDashboardReport(alerts));
+  const content = buildDashboardReport(alerts);
+  const opened = openPrintReport("KAVACH Command Center Report", content);
+
+  if (!opened) {
+    downloadTextFile("kavach-command-center-report.txt", content);
+  }
 }
 
 function buildDashboardReport(alerts: AlertRecord[]) {
@@ -202,7 +210,15 @@ export function exportIncidentPrintReport(
   relatedAlerts: AlertRecord[],
   analystNote = ""
 ) {
-  openPrintReport(`KAVACH Incident ${alert.id}`, buildIncidentReport(alert, relatedAlerts, analystNote));
+  const content = buildIncidentReport(alert, relatedAlerts, analystNote);
+  const opened = openPrintReport(`KAVACH Incident ${alert.id}`, content);
+
+  if (!opened) {
+    downloadTextFile(
+      `kavach-incident-${sanitizeFilenamePart(alert.id)}.txt`,
+      content
+    );
+  }
 }
 
 function buildIncidentReport(

@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   ALERT_STORAGE_KEY,
   buildRiskSignals,
+  normalizeAlertFeed,
   sampleAlerts,
   type AlertRecord,
 } from "@/lib/alert-data";
@@ -18,7 +19,7 @@ function readStoredAlerts() {
       return sampleAlerts;
     }
 
-    const parsed = JSON.parse(raw) as AlertRecord[];
+    const parsed = normalizeAlertFeed(JSON.parse(raw));
     return parsed.length > 0 ? parsed : sampleAlerts;
   } catch {
     return sampleAlerts;
