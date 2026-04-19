@@ -76,6 +76,61 @@ export type UploadFormat = "csv" | "json" | "log" | "excel";
 
 type RawThreatRecord = Record<string, string>;
 
+const fieldAliases: Record<string, string> = {
+  alert_id: "id",
+  alertid: "id",
+  event_time: "timestamp",
+  observed_at: "timestamp",
+  time: "timestamp",
+  owner: "source",
+  host: "source",
+  entity: "source",
+  asset: "source",
+  segment: "source",
+  attack_vector: "vector",
+  attack_type: "vector",
+  category: "vector",
+  failed_login: "failed_logins",
+  failed_logins_count: "failed_logins",
+  login_failures: "failed_logins",
+  failures: "failed_logins",
+  outbound_bytes: "bytes_out",
+  bytes: "bytes_out",
+  data_out: "bytes_out",
+  privilege: "privilege_change",
+  privileged: "privilege_change",
+  privilege_escalation: "privilege_change",
+  lateral: "lateral_attempts",
+  lateral_movement: "lateral_attempts",
+  lateral_connections: "lateral_attempts",
+  geo: "geo_velocity",
+  geovelocity: "geo_velocity",
+  geo_velocity_risk: "geo_velocity",
+};
+
+function normalizeFieldName(key: string) {
+  const normalized = key
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_|_$/g, "");
+
+  return fieldAliases[normalized] ?? normalized;
+}
+
+function hasUsefulThreatFields(record: RawThreatRecord) {
+  return [
+    "timestamp",
+    "source",
+    "vector",
+    "failed_logins",
+    "bytes_out",
+    "privilege_change",
+    "lateral_attempts",
+    "geo_velocity",
+  ].some((field) => Boolean(record[field]));
+}
+
 function isSeverity(value: unknown): value is Severity {
   return severityOrder.includes(value as Severity);
 }
@@ -168,7 +223,7 @@ export function parseCsvToAlerts(csvText: string): AlertRecord[] {
 
   if (rows.length < 2) return [];
 
-  const headers = parseCsvLine(rows[0]).map((header) => header.trim().toLowerCase());
+  const headers = parseCsvLine(rows[0]).map(normalizeFieldName);
   const rawRecords = rows.slice(1).map((row) => {
     const values = parseCsvLine(row);
     return Object.fromEntries(
@@ -182,14 +237,14 @@ export function parseCsvToAlerts(csvText: string): AlertRecord[] {
 function normalizeRecordKeys(record: Record<string, unknown>): RawThreatRecord {
   return Object.fromEntries(
     Object.entries(record).map(([key, value]) => [
-      key.trim().toLowerCase(),
+      normalizeFieldName(key),
       String(value ?? "").trim(),
     ])
   );
 }
 
 function mapRecordsToAlerts(records: RawThreatRecord[]) {
-  return records.map((record, index) => {
+  return records.filter(hasUsefulThreatFields).map((record, index) => {
     const failedLogins = Number(record.failed_logins ?? 0);
     const lateralAttempts = Number(record.lateral_attempts ?? 0);
     const bytesOut = Number(record.bytes_out ?? 0);
