@@ -46,3 +46,9 @@ This is a polished investigation copilot prototype. It does not yet connect to a
 - `npm run lint` passes.
 - `npm run build` passes.
 - Python engine is included, but this local machine currently does not have Python installed, so it could not be executed here.
+
+## Interview Assets
+
+- `README.md` explains the project at repository level.
+- `kavach-app/README.md` explains the app architecture and demo flow.
+- `INTERVIEW_SCRIPT.md` contains the short pitch, demo script, and improvement answers.

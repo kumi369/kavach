@@ -51,6 +51,39 @@ Useful routes:
 7. Click a high-risk alert to inspect the incident.
 8. Add analyst notes and export the incident or dashboard report.
 
+## Architecture
+
+```text
+Raw CSV/JSON/LOG/XLSX
+        |
+        v
+Client parser + normalizer
+        |
+        v
+Risk scoring and alert generation
+        |
+        v
+localStorage demo persistence
+        |
+        v
+Dashboard, incident view, notes, reports
+```
+
+## Key Design Decisions
+
+- The UI stores alerts in browser storage to keep the prototype easy to run without backend setup.
+- The scoring rules are transparent so interviewers can understand why confidence changes.
+- The Python engine mirrors the same scoring concept for offline/server-side evolution.
+- Report export supports TXT and print/PDF-ready views without adding heavy PDF dependencies.
+
+## Interview Talking Points
+
+- Problem: analysts need help turning noisy telemetry into actionable investigation queues.
+- Input: CSV, JSON, LOG/TXT, or Excel threat data.
+- Processing: field normalization, risk scoring, severity mapping, timeline generation.
+- Output: dashboard, incident detail, notes, and exportable reports.
+- Tradeoff: localStorage is fine for a prototype; real production would need auth, backend APIs, database, audit logs, and SIEM integrations.
+
 ## Sample CSV Shape
 
 ```csv
