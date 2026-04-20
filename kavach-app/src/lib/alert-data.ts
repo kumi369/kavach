@@ -464,5 +464,15 @@ export function buildRiskSignals(alert: AlertRecord): RiskSignal[] {
     return { label: "Baseline deviation", weight: 28 };
   });
 
-  return signals.slice(0, 6);
+  const mergedSignals = signals.reduce<Record<string, RiskSignal>>((merged, signal) => {
+    merged[signal.label] = {
+      label: signal.label,
+      weight: (merged[signal.label]?.weight ?? 0) + signal.weight,
+    };
+    return merged;
+  }, {});
+
+  return Object.values(mergedSignals)
+    .sort((left, right) => right.weight - left.weight)
+    .slice(0, 6);
 }
